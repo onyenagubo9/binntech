@@ -18,7 +18,7 @@ export default function About() {
         </motion.h3>
 
         <div className="flex flex-col md:flex-row items-center gap-10">
-          {/* Profile image or avatar */}
+          {/* Profile image */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -26,7 +26,7 @@ export default function About() {
             className="relative w-40 h-40 md:w-56 md:h-56 rounded-full overflow-hidden border-4 border-blue-500 shadow-lg"
           >
             <Image
-              src="/suitobinna.png" // 👈 replace with your actual image file in /public
+              src="/suitobinna.png"
               alt="Obinna Anthony"
               fill
               className="object-cover"
@@ -41,7 +41,7 @@ export default function About() {
             className="md:text-left text-center"
           >
             <h4 className="text-2xl font-semibold mb-3">
-              Hi, I'm{" "}
+              Hi, I&apos;m{" "}
               <span className="text-blue-400">Obinna Anthony</span>
             </h4>
 
@@ -63,10 +63,10 @@ export default function About() {
             />
 
             <p className="text-gray-400 leading-relaxed max-w-lg">
-              I’m a passionate full stack developer who loves building
+              I&apos;m a passionate full stack developer who loves building
               intuitive, high-performance web and mobile applications.
               My goal is to create digital experiences that merge design,
-              functionality, and scalability.  
+              functionality, and scalability.
               <br />
               I enjoy exploring new technologies and constantly improving my
               craft through real-world projects and collaboration.
