@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import React from "react";
 
+// Fix "window is not defined"
 const PaystackButton = dynamic(
   () => import("react-paystack").then((mod) => mod.PaystackButton),
   { ssr: false }
@@ -13,6 +13,7 @@ interface PayButtonProps {
   amount: number;
   project: string;
   downloadLink: string;
+  disabled?: boolean; // 👈 ADDED
 }
 
 export default function PaystackButtonComponent({
@@ -20,8 +21,11 @@ export default function PaystackButtonComponent({
   amount,
   project,
   downloadLink,
+  disabled = false, // 👈 ADDED
 }: PayButtonProps) {
-  const publicKey = "pk_live_25e0ec236f6b8552f9783fbe80aa35dbd471ac6f";
+  const publicKey =
+    process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY ||
+    "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 
   const componentProps = {
     email,
@@ -36,18 +40,25 @@ export default function PaystackButtonComponent({
       ],
     },
     publicKey,
-    text: "Buy Project",
+    text: disabled ? "Enter Email" : "Buy Now",
     onSuccess: () => {
-      alert("✅ Payment successful! Your download will start now.");
-      window.location.href = downloadLink; // redirect to file
+      alert("Payment successful!");
+      window.location.href = downloadLink;
     },
-    onClose: () => alert("❌ Transaction cancelled."),
+    onClose: () => alert("Transaction closed"),
   };
 
   return (
     <PaystackButton
       {...componentProps}
-      className="px-6 py-3 bg-green-600 rounded-lg text-white hover:bg-green-700"
+      disabled={disabled}
+      className={`w-full px-4 py-2 rounded-lg text-white font-semibold transition
+        ${
+          disabled
+            ? "bg-gray-600 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }
+      `}
     />
   );
 }
