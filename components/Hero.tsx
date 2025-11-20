@@ -38,37 +38,57 @@ export default function Hero() {
       />
 
       <div className="relative z-10 max-w-3xl">
-        {/* Title */}
+        {/* Floating Title */}
         <motion.h1
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
           className="text-5xl md:text-6xl font-extrabold text-white leading-tight drop-shadow-xl"
         >
+          {/* First Line Floating */}
           <motion.span
-            animate={{
-              backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
+            animate={{ y: [0, -10, 0] }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              repeatType: "mirror",
+              ease: "easeInOut",
             }}
-            transition={{ duration: 8, repeat: Infinity }}
-            className="bg-linear-to-r from-white via-blue-300 to-white bg-size-[200%_200%] bg-clip-text text-transparent"
+            className="inline-block"
           >
-            We Build Modern
+            We Build <span className="text-blue-400">Modern</span>
           </motion.span>
+
           <br />
-          <span className="text-blue-400">Digital Solutions</span>
+
+          {/* Second Line Floating */}
+          <motion.span
+            animate={{ y: [0, 10, 0] }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              repeatType: "mirror",
+              ease: "easeInOut",
+              delay: 0.5,
+            }}
+            className="inline-block text-blue-300"
+          >
+            Digital Solutions
+          </motion.span>
         </motion.h1>
 
-        {/* Paragraph */}
+        {/* Sub text */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6, duration: 1 }}
           className="mt-6 text-lg text-gray-200 max-w-xl mx-auto"
         >
-          BinnTech creates powerful applications using{" "}
+          BinnTech creates powerful web and mobile applications using{" "}
           <span className="text-blue-400 font-semibold">Next.js</span>,{" "}
           <span className="text-blue-400 font-semibold">React Native</span>,{" "}
-          <span className="text-blue-400 font-semibold">Node.js</span>.
+          <span className="text-blue-400 font-semibold">Node.js</span> — built
+          for performance and scalability.
         </motion.p>
 
         {/* Buttons */}

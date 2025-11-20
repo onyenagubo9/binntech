@@ -10,6 +10,17 @@
 !.yarn/releases
 !.yarn/versions
 
+node_modules/
+.next/
+dist/
+.vercel/
+*.zip
+*.mp4
+*.avi
+*.mov
+*.psd
+
+
 # testing
 /coverage
 
