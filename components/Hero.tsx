@@ -38,18 +38,27 @@ export default function Hero() {
       />
 
       <div className="relative z-10 max-w-3xl">
-        {/* Floating Title */}
+        {/* Neon Glow Pulse Title */}
         <motion.h1
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
           className="text-5xl md:text-6xl font-extrabold text-white leading-tight drop-shadow-xl"
         >
-          {/* First Line Floating */}
+          {/* First Line */}
           <motion.span
-            animate={{ y: [0, -10, 0] }}
+            animate={{
+              textShadow: [
+                "0 0 10px #3b82f6",
+                "0 0 20px #3b82f6",
+                "0 0 35px #60a5fa",
+                "0 0 20px #3b82f6",
+                "0 0 10px #3b82f6",
+              ],
+              color: ["#ffffff", "#dbeafe", "#ffffff"],
+            }}
             transition={{
-              duration: 3,
+              duration: 2.5,
               repeat: Infinity,
               repeatType: "mirror",
               ease: "easeInOut",
@@ -61,15 +70,23 @@ export default function Hero() {
 
           <br />
 
-          {/* Second Line Floating */}
+          {/* Second Line */}
           <motion.span
-            animate={{ y: [0, 10, 0] }}
+            animate={{
+              textShadow: [
+                "0 0 12px #60a5fa",
+                "0 0 25px #93c5fd",
+                "0 0 40px #3b82f6",
+                "0 0 25px #93c5fd",
+                "0 0 12px #60a5fa",
+              ],
+              color: ["#bfdbfe", "#ffffff", "#bfdbfe"],
+            }}
             transition={{
               duration: 3,
               repeat: Infinity,
               repeatType: "mirror",
               ease: "easeInOut",
-              delay: 0.5,
             }}
             className="inline-block text-blue-300"
           >
@@ -77,7 +94,7 @@ export default function Hero() {
           </motion.span>
         </motion.h1>
 
-        {/* Sub text */}
+        {/* Sub Text */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -120,9 +137,18 @@ export default function Hero() {
         {/* Feature icons */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { icon: <FaLaptopCode className="text-blue-400 text-4xl" />, title: "Web Apps" },
-            { icon: <FaMobileAlt className="text-blue-400 text-4xl" />, title: "Mobile Apps" },
-            { icon: <FaRocket className="text-blue-400 text-4xl" />, title: "Fast Deployment" },
+            {
+              icon: <FaLaptopCode className="text-blue-400 text-4xl" />,
+              title: "Web Apps",
+            },
+            {
+              icon: <FaMobileAlt className="text-blue-400 text-4xl" />,
+              title: "Mobile Apps",
+            },
+            {
+              icon: <FaRocket className="text-blue-400 text-4-4xl" />,
+              title: "Fast Deployment",
+            },
           ].map((item, index) => (
             <motion.div
               key={index}
