@@ -41,7 +41,7 @@ const projects: Project[] = [
     youtube: "https://www.youtube.com/watch?v=ecommerce-demo",
     live: "https://alphamobilesnz.com/",
     type: "free",
-    downloadLink: "/downloads/project1.zip",
+    downloadLink: "/downloads/cryptex.zip",
   },
   {
     title: "Banking website",
