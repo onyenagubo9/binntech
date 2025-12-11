@@ -1,19 +1,28 @@
 import { auth } from "@/lib/firebaseClient";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, User } from "firebase/auth";
 
-export async function signupUser(email: string, password: string) {
+interface SignupResult {
+  user: User | null;
+  error: string | null;
+}
+
+export async function signupUser(
+  email: string,
+  password: string
+): Promise<SignupResult> {
   try {
-    // Firebase signup
     const result = await createUserWithEmailAndPassword(auth, email, password);
 
-    // Get Firebase ID token
-    const token = await result.user.getIdToken();
+    return {
+      user: result.user,
+      error: null,
+    };
+  } catch (error: unknown) {
+    const err = error as Error;
 
-    // Store token inside a secure cookie (for middleware auth)
-    document.cookie = `binntech_token=${token}; Path=/; Secure; SameSite=Strict; Max-Age=86400`;
-
-    return { user: result.user, error: null };
-  } catch (error: any) {
-    return { user: null, error: error.message };
+    return {
+      user: null,
+      error: err.message,
+    };
   }
 }

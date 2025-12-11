@@ -1,16 +1,25 @@
 import { auth } from "@/lib/firebaseClient";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { signInWithEmailAndPassword, User } from "firebase/auth";
 
-export async function loginUser(email: string, password: string) {
+interface LoginResult {
+  user: User | null;
+  error: string | null;
+}
+
+export async function loginUser(email: string, password: string): Promise<LoginResult> {
   try {
-    const userCred = await signInWithEmailAndPassword(auth, email, password);
-    const token = await userCred.user.getIdToken();
+    const result = await signInWithEmailAndPassword(auth, email, password);
 
-    // Store token securely
-    document.cookie = `binntech_token=${token}; path=/; secure; max-age=86400`;
+    return {
+      user: result.user,
+      error: null,
+    };
+  } catch (error: unknown) {
+    const err = error as Error;
 
-    return { error: null };
-  } catch (err: any) {
-    return { error: err.message };
+    return {
+      user: null,
+      error: err.message,
+    };
   }
 }
