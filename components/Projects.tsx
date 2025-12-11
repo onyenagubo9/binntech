@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useState } from "react";
 import PaystackButtonComponent from "./PaystackButton";
 
+
 interface Project {
   title: string;
   image: string;
@@ -26,7 +27,7 @@ const projects: Project[] = [
     description:
       "A secure crypto wallet app built with Next.js, Firebase, and Tailwind. Supports authentication, live market data, and transactions.",
     tech: ["Next.js", "Firebase", "Tailwind"],
-    youtube: "https://www.youtube.com/watch?v=cryptex-demo", // your YouTube link here
+    youtube: "https://www.youtube.com/@binntech?sub_confirmation=1", // your YouTube link here
     live: "https://cryptex-wtqk.vercel.app/",
     type: "paid",
     price: 25000,
@@ -38,7 +39,7 @@ const projects: Project[] = [
     description:
       "Full-featured admin dashboard for managing products, orders, and analytics with Node.js and MongoDB backend.",
     tech: ["React", "Node.js", "MongoDB"],
-    youtube: "https://www.youtube.com/watch?v=ecommerce-demo",
+    youtube: "https://www.youtube.com/@binntech?sub_confirmation=1",
     live: "https://alphamobilesnz.com/",
     type: "free",
     downloadLink: "/downloads/cryptex.zip",
@@ -49,7 +50,7 @@ const projects: Project[] = [
     description:
       "Modern responsive Banking project showcasing Firstapp services with elegant UI and animations.",
     tech: ["Next.js", "Framer Motion", "Tailwind"],
-    youtube: "https://www.youtube.com/watch?v=banking-demo",
+    youtube: "https://www.youtube.com/@binntech?sub_confirmation=1",
     live: "https://www.firstcbu.app/",
     type: "paid",
     price: 30000,
