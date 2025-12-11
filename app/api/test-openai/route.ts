@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
-import { openai } from "@/lib/openai";
+import OpenAI from "openai";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY!,
+});
 
 export async function GET() {
   try {
-    const result = await openai.chat.completions.create({
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         { role: "user", content: "Say Hello BinnTech!" },
@@ -11,9 +15,12 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      message: result.choices[0].message.content,
+      message: completion.choices[0].message.content,
     });
-  } catch (err: any) {
+
+  } catch (error: unknown) {
+    const err = error as Error;
+
     return NextResponse.json(
       { error: err.message },
       { status: 500 }
