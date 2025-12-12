@@ -1,8 +1,10 @@
 import { auth } from "@/lib/firebaseClient";
-import { createUserWithEmailAndPassword, User } from "firebase/auth";
+import { db } from "@/lib/firebaseClient";
+import { createUserWithEmailAndPassword, UserCredential } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 interface SignupResult {
-  user: User | null;
+  user: UserCredential["user"] | null;
   error: string | null;
 }
 
@@ -12,6 +14,14 @@ export async function signupUser(
 ): Promise<SignupResult> {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);
+
+    // Firestore user document
+    await setDoc(doc(db, "users", result.user.uid), {
+      uid: result.user.uid,
+      email: result.user.email,
+      createdAt: new Date().toISOString(),
+      role: "user", // you can create admin roles later
+    });
 
     return {
       user: result.user,

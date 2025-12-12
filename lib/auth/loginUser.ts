@@ -1,17 +1,29 @@
 import { auth } from "@/lib/firebaseClient";
-import { signInWithEmailAndPassword, User } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  UserCredential,
+} from "firebase/auth";
 
-interface LoginResult {
-  user: User | null;
+export interface LoginResult {
+  user: UserCredential["user"] | null;
+  token: string | null;
   error: string | null;
 }
 
-export async function loginUser(email: string, password: string): Promise<LoginResult> {
+export async function loginUser(
+  email: string,
+  password: string
+): Promise<LoginResult> {
   try {
+    // Sign in user with Firebase
     const result = await signInWithEmailAndPassword(auth, email, password);
+
+    // Get Firebase ID token for middleware authentication
+    const token = await result.user.getIdToken();
 
     return {
       user: result.user,
+      token,
       error: null,
     };
   } catch (error: unknown) {
@@ -19,6 +31,7 @@ export async function loginUser(email: string, password: string): Promise<LoginR
 
     return {
       user: null,
+      token: null,
       error: err.message,
     };
   }

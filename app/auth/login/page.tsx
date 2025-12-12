@@ -19,15 +19,18 @@ export default function LoginPage() {
     setLoading(true);
     setErrorMsg("");
 
-    const { error } = await loginUser(email, password);
+    const { error, token } = await loginUser(email, password);
 
-    if (error) {
-      setErrorMsg(error);
+    if (error || !token) {
+      setErrorMsg(error ?? "Login failed");
       setLoading(false);
       return;
     }
 
-    router.push("/ai");
+    // ⭐ SAVE TOKEN IN COOKIE FOR MIDDLEWARE
+    document.cookie = `binntech_token=${token}; path=/; max-age=86400; secure;`;
+
+    router.push("/dashboard");
   }
 
   return (
@@ -42,7 +45,7 @@ export default function LoginPage() {
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
 
-      {/* Floating glowing particles */}
+      {/* Glowing particles */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="particle"></div>
         <div className="particle delay-1"></div>
@@ -50,7 +53,7 @@ export default function LoginPage() {
         <div className="particle delay-3"></div>
       </div>
 
-      {/* Glass glowing card */}
+      {/* Login Card */}
       <div className="relative z-20 backdrop-blur-xl bg-white/10 border border-white/20 p-10 rounded-2xl shadow-xl max-w-md w-full animate-card-in">
 
         {/* Logo */}
@@ -70,14 +73,14 @@ export default function LoginPage() {
           Login to access your AI tools
         </p>
 
-        {/* Error message */}
+        {/* Error Message */}
         {errorMsg && (
           <p className="bg-red-500/20 border border-red-500 text-red-300 p-3 rounded mb-4 text-sm animate-shake">
             {errorMsg}
           </p>
         )}
 
-        {/* EMAIL INPUT WITH ICON */}
+        {/* EMAIL */}
         <div className="inputWrapper">
           <FiMail className="inputIcon" />
           <input
@@ -87,9 +90,10 @@ export default function LoginPage() {
           />
         </div>
 
-        {/* PASSWORD INPUT WITH ICON + SHOW/HIDE */}
+        {/* PASSWORD */}
         <div className="inputWrapper">
           <FiLock className="inputIcon" />
+
           <input
             type={showPass ? "text" : "password"}
             className="inputBox"
@@ -97,7 +101,6 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {/* Show/Hide Toggle */}
           <span
             className="passwordToggle"
             onClick={() => setShowPass(!showPass)}
@@ -114,7 +117,7 @@ export default function LoginPage() {
           Forgot Password?
         </p>
 
-        {/* Login Button */}
+        {/* LOGIN BUTTON */}
         <button
           onClick={handleLogin}
           className="mainBtn"
@@ -122,7 +125,7 @@ export default function LoginPage() {
           {loading ? "Logging in..." : "Login"}
         </button>
 
-        {/* Sign Up Link */}
+        {/* Sign up link */}
         <p className="text-center mt-6 text-gray-300">
           Don’t have an account?
           <a href="/auth/signup" className="text-blue-400 ml-1 hover:underline">
@@ -132,7 +135,7 @@ export default function LoginPage() {
       </div>
 
 <style>{`
-/* Animations + Glow reused from Signup */
+/* Animations */
 .animate-card-in {
   animation: cardIn 0.9s ease-out forwards, cardGlow 3s infinite ease-in-out;
   opacity: 0;
@@ -140,17 +143,16 @@ export default function LoginPage() {
 }
 @keyframes cardIn { to { opacity:1; transform:translateY(0) scale(1); } }
 @keyframes cardGlow {
-  0%,100% { box-shadow:0 0 20px #2563eb50, 0 0 40px #2563eb30; }
-  50% { box-shadow:0 0 35px #2563eb80, 0 0 65px #2563eb50; }
+  0%,100% { box-shadow:0 0 20px #2563eb50; }
+  50% { box-shadow:0 0 40px #2563eb80; }
 }
 
 .animate-logo {
-  animation: pulseLogo 3s infinite ease-in-out, logoGlow 2s infinite ease-in-out alternate;
+  animation: pulseLogo 3s infinite ease-in-out;
 }
-@keyframes pulseLogo { 0%,100% {scale:1;} 50% {scale:1.08;} }
-@keyframes logoGlow {
-  0% {filter:drop-shadow(0 0 6px #60a5fa);}
-  100% {filter:drop-shadow(0 0 14px #3b82f6);}
+@keyframes pulseLogo {
+  0%,100% { transform:scale(1); }
+  50% { transform:scale(1.08); }
 }
 
 /* Floating particles */
@@ -169,7 +171,7 @@ export default function LoginPage() {
   100% { transform:translateY(-800px); opacity:0; }
 }
 
-/* Input Wrapper */
+/* Input fields */
 .inputWrapper {
   position: relative;
   margin-bottom: 16px;
@@ -182,10 +184,8 @@ export default function LoginPage() {
   transform: translateY(-50%);
   color: #60a5fa;
   font-size: 1.2rem;
-  pointer-events:none;
 }
 
-/* Show/Hide password */
 .passwordToggle {
   position: absolute;
   top: 50%;
@@ -193,13 +193,11 @@ export default function LoginPage() {
   transform: translateY(-50%);
   cursor: pointer;
   color: #93c5fd;
-  font-size: 1.3rem;
 }
 
-/* Input Box */
 .inputBox {
   width: 100%;
-  padding: 12px 45px 12px 45px;
+  padding: 12px 45px;
   border-radius: 10px;
   background: rgba(17,24,39,0.85);
   border: 1px solid #374151;
@@ -209,10 +207,10 @@ export default function LoginPage() {
 }
 .inputBox:focus {
   border-color: #3b82f6;
-  box-shadow: 0 0 15px #3b82f680, 0 0 30px #2563eb50;
+  box-shadow: 0 0 15px #3b82f680;
 }
 
-/* Login Button */
+/* Button */
 .mainBtn {
   width: 100%;
   padding: 12px;
@@ -223,14 +221,12 @@ export default function LoginPage() {
   font-weight:600;
   cursor:pointer;
   transition:0.3s;
-  animation: btnGlow 3s infinite ease-in-out;
 }
-@keyframes btnGlow {
-  0%,100% { box-shadow:0 0 20px #2563eb60; }
-  50% { box-shadow:0 0 40px #2563eb90; }
+.mainBtn:hover {
+  background: #1d4ed8;
 }
 
-/* Error shake animation */
+/* Error animation */
 .animate-shake {
   animation: shake 0.3s ease-in-out;
 }
