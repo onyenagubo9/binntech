@@ -37,22 +37,47 @@ export default function DashboardPage() {
       {/* Sidebar */}
       <Sidebar isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
 
-      {/* Main */}
+      {/* Main Content */}
       <main className="flex-1 w-full p-4 md:p-10 relative z-10">
 
         <Navbar onMenuClick={() => setMenuOpen(true)} />
 
-        {/* AI Tools */}
-        <h2 className="text-xl font-semibold mb-4">AI Developer Tools</h2>
+        {/* AI Tools Section */}
+        <h2 className="text-xl font-semibold mb-4 mt-4">AI Developer Tools</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          <ToolCard icon={<FiCode />} title="AI Code Generator" desc="Generate full code instantly." />
-          <ToolCard icon={<FiAlertTriangle />} title="AI Debugger" desc="Find & fix errors automatically." />
-          <ToolCard icon={<FiZap />} title="AI Code Explainer" desc="Explain any code instantly." />
-          <ToolCard icon={<FiCpu />} title="Project Starter" desc="Generate project structures automatically." />
+
+          <ToolCard
+            icon={<FiCode />}
+            title="AI Code Generator"
+            desc="Generate full code instantly."
+            href="/dashboard/builder/test-project"
+          />
+
+          <ToolCard
+            icon={<FiAlertTriangle />}
+            title="AI Debugger"
+            desc="Find & fix errors automatically."
+            href="/dashboard/builder/test-project"
+          />
+
+          <ToolCard
+            icon={<FiZap />}
+            title="AI Code Explainer"
+            desc="Explain any code instantly."
+            href="/dashboard/builder/test-project"
+          />
+
+          <ToolCard
+            icon={<FiCpu />}
+            title="Project Starter"
+            desc="Generate project structures automatically."
+            href="/dashboard/builder/test-project"
+          />
+
         </div>
 
-        {/* Store */}
+        {/* Store Section */}
         <h2 className="text-xl font-semibold mt-12 mb-4">Project Store</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -61,7 +86,7 @@ export default function DashboardPage() {
           <StoreCard title="AI Chatbot Template" price="$15" />
         </div>
 
-      </main>      
+      </main>
     </div>
   );
 }
