@@ -1,16 +1,18 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebaseClient";
-import { usePaystackPayment } from "react-paystack";
 
 export default function BillingPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initializePayment, setInitializePayment] = useState<any>(null);
 
-  // Get logged-in user's email
+  // ✅ Auth check (client-only)
   useEffect(() => {
     if (!auth.currentUser) {
       router.push("/auth/login");
@@ -20,23 +22,33 @@ export default function BillingPage() {
     setEmail(auth.currentUser.email || "");
   }, [router]);
 
-  const paystackConfig = {
-    reference: `binntech_${Date.now()}`,
-    email,
-    amount: 5000 * 100, // ₦5,000 in kobo
-    publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
-  };
+  // ✅ Load Paystack ONLY in the browser
+  useEffect(() => {
+    const loadPaystack = async () => {
+      const { usePaystackPayment } = await import("react-paystack");
 
-  const initializePayment = usePaystackPayment(paystackConfig);
+      const config = {
+        reference: `binntech_${Date.now()}`,
+        email,
+        amount: 5000 * 100, // ₦5,000 in kobo
+        publicKey: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY!,
+      };
 
-  function handleSubscribe() {
-    if (!email) return;
+      setInitializePayment(() => usePaystackPayment(config));
+    };
+
+    if (email) {
+      loadPaystack();
+    }
+  }, [email]);
+
+  const handleSubscribe = () => {
+    if (!initializePayment) return;
 
     setLoading(true);
 
     initializePayment({
-      onSuccess: async (reference) => {
-        // Call backend to verify & credit user
+      onSuccess: async (reference: any) => {
         await fetch("/api/paystack/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -53,7 +65,7 @@ export default function BillingPage() {
         alert("Payment cancelled");
       },
     });
-  }
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0f1f] text-white flex justify-center items-center p-6">
@@ -76,7 +88,7 @@ export default function BillingPage() {
         </div>
 
         <button
-          disabled={loading}
+          disabled={loading || !initializePayment}
           onClick={handleSubscribe}
           className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-semibold transition disabled:opacity-60"
         >
