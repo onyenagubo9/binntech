@@ -1,33 +1,43 @@
 "use client";
 
 import { useState, useEffect, useRef, use } from "react";
-import { saveMessage } from "@/lib/db/saveMessage";
 import { auth, db } from "@/lib/firebaseClient";
+import { saveMessage } from "@/lib/db/saveMessage";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import Image from "next/image";
+
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
+
+type ChatMessage = {
+  id?: string;
+  sender: "user" | "ai";
+  message: string;
+};
 
 export default function AppBuilder({
   params,
 }: {
   params: Promise<{ projectId: string }>;
 }) {
-  // Fix for async params
   const { projectId } = use(params);
 
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [streamingText, setStreamingText] = useState("");
   const [aiTyping, setAiTyping] = useState(false);
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
-
+  const bottomRef = useRef<HTMLDivElement | null>(null);
   const uid = auth.currentUser?.uid;
 
-  // Auto-scroll to bottom
+  /* -------------------- AUTO SCROLL (FIXED) -------------------- */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, aiTyping]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length, streamingText]);
 
-  // Load messages in real time
+  /* -------------------- LOAD CHAT HISTORY -------------------- */
   useEffect(() => {
     if (!uid || !projectId) return;
 
@@ -36,35 +46,58 @@ export default function AppBuilder({
       orderBy("createdAt", "asc")
     );
 
-    const unsub = onSnapshot(q, (snap) => {
-      setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    return onSnapshot(q, (snap) => {
+      const data: ChatMessage[] = snap.docs.map((d) => ({
+        id: d.id,
+        ...(d.data() as ChatMessage),
+      }));
+      setMessages(data);
     });
-
-    return () => unsub();
   }, [uid, projectId]);
 
-  // Send message
+  /* -------------------- SEND MESSAGE (WITH MEMORY) -------------------- */
   async function sendMessage() {
     if (!input.trim() || !uid) return;
 
     const userText = input;
     setInput("");
     setAiTyping(true);
+    setStreamingText("");
 
-    // Save user message to Firestore
+    // Save user message
     await saveMessage(uid, projectId, "user", userText);
 
-    // Call your AI API route
+    // Build memory (last 20 messages)
+    const memory = messages.slice(-20).map((m) => ({
+      role: m.sender === "user" ? "user" : "assistant",
+      content: m.message,
+    }));
+
     const res = await fetch("/api/ai-chat", {
       method: "POST",
-      body: JSON.stringify({ message: userText }),
+      body: JSON.stringify({
+        messages: [...memory, { role: "user", content: userText }],
+      }),
     });
 
-    const data = await res.json();
+    const reader = res.body?.getReader();
+    if (!reader) return;
 
-    // Save AI response to Firestore
-    await saveMessage(uid, projectId, "ai", data.reply);
+    let aiText = "";
 
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+
+      const chunk = new TextDecoder().decode(value);
+      aiText += chunk;
+      setStreamingText((prev) => prev + chunk);
+    }
+
+    // Save AI response
+    await saveMessage(uid, projectId, "ai", aiText);
+
+    setStreamingText("");
     setAiTyping(false);
   }
 
@@ -74,86 +107,117 @@ export default function AppBuilder({
       {/* HEADER */}
       <div className="p-4 border-b border-white/10 bg-black/40">
         <h1 className="text-xl font-bold">BinnAI App Builder</h1>
-        <p className="text-gray-400 text-sm">Chat with BinnAI to build your application</p>
+        <p className="text-gray-400 text-sm">
+          Build your app by chatting with BinnAI
+        </p>
       </div>
 
       {/* CHAT AREA */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6 max-w-4xl mx-auto w-full">
 
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex items-start gap-3 ${
+            className={`flex gap-3 ${
               msg.sender === "user" ? "justify-end" : ""
             }`}
           >
-
-            {/* BinnAI Avatar */}
             {msg.sender === "ai" && (
               <Image
                 src="/binn-logo.png"
-                width={35}
-                height={35}
-                alt="BinnAI Avatar"
-                className="rounded-full shadow-md"
+                alt="BinnAI"
+                width={36}
+                height={36}
+                className="rounded-full"
               />
             )}
 
-            {/* MESSAGE BUBBLE */}
             <div
-              className={`max-w-[75%] p-3 rounded-xl whitespace-pre-line ${
+              className={`max-w-[75%] p-4 rounded-xl whitespace-pre-wrap ${
                 msg.sender === "user"
-                  ? "bg-blue-600 text-white rounded-br-none"
+                  ? "bg-blue-600 rounded-br-none"
                   : "bg-white/10 border border-white/20 rounded-bl-none"
               }`}
             >
-              {msg.message}
-            </div>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({ className, children, ...props }) {
+                    const match = /language-(\w+)/.exec(className || "");
 
+                    if (!match) {
+                      return (
+                        <code className="bg-black/40 px-1 rounded" {...props}>
+                          {children}
+                        </code>
+                      );
+                    }
+
+                    return (
+                      <div className="relative">
+                        <button
+                          onClick={() =>
+                            navigator.clipboard.writeText(
+                              String(children).replace(/\n$/, "")
+                            )
+                          }
+                          className="absolute top-2 right-2 text-xs bg-black/60 px-2 py-1 rounded"
+                        >
+                          Copy
+                        </button>
+
+                        <SyntaxHighlighter
+                          style={oneDark}
+                          language={match[1]}
+                          PreTag="div"
+                        >
+                          {String(children).replace(/\n$/, "")}
+                        </SyntaxHighlighter>
+                      </div>
+                    );
+                  },
+                }}
+              >
+                {msg.message}
+              </ReactMarkdown>
+            </div>
           </div>
         ))}
 
-        {/* AI TYPING INDICATOR */}
+        {/* STREAMING MESSAGE */}
         {aiTyping && (
-          <div className="flex items-center gap-3">
+          <div className="flex gap-3">
             <Image
               src="/binn-logo.png"
-              width={35}
-              height={35}
-              alt="BinnAI Avatar"
-              className="rounded-full shadow-md"
+              alt="BinnAI"
+              width={36}
+              height={36}
+              className="rounded-full"
             />
-            <div className="bg-white/10 border border-white/20 p-3 rounded-xl w-20">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-150"></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-300"></div>
-              </div>
+            <div className="max-w-[75%] p-4 bg-white/10 border border-white/20 rounded-xl">
+              <ReactMarkdown>{streamingText || "…"}</ReactMarkdown>
             </div>
           </div>
         )}
 
-        <div ref={messagesEndRef} />
+        <div ref={bottomRef} />
       </div>
 
-      {/* INPUT BAR */}
+      {/* INPUT */}
       <div className="p-4 border-t border-white/10 bg-black/40">
-        <div className="flex gap-3">
-
+        <div className="flex gap-3 max-w-4xl mx-auto">
           <input
             className="flex-1 p-3 bg-black/40 border border-white/20 rounded-xl outline-none focus:border-blue-500"
-            placeholder="Ask BinnAI to help build your app..."
+            placeholder="Ask BinnAI to help you build your app..."
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
-
           <button
             onClick={sendMessage}
             className="px-6 bg-blue-600 rounded-xl font-semibold hover:bg-blue-700 transition"
           >
             Send
           </button>
-
         </div>
       </div>
     </div>

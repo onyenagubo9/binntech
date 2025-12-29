@@ -1,20 +1,27 @@
-import React from "react";
+"use client";
 
 interface StoreCardProps {
   title: string;
   price: string;
 }
 
-export default function StoreCard({ title, price }: StoreCardProps) {
+export default function StoreCard({
+  title,
+  price,
+}: StoreCardProps) {
   return (
-    <div className="p-6 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-lg shadow-lg hover:shadow-purple-500/30 transition hover:-translate-y-1 cursor-pointer">
-      <h3 className="text-lg font-semibold">{title}</h3>
+    <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition">
+      <h3 className="text-lg font-semibold mb-2">
+        {title}
+      </h3>
 
-      <p className="text-gray-300 text-sm mt-2">
-        Ready-to-use project folder
+      <p className="text-blue-400 font-bold mb-4">
+        {price}
       </p>
 
-      <p className="text-blue-400 font-bold text-xl mt-4">{price}</p>
+      <button className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-xl text-sm font-semibold transition">
+        Buy Now
+      </button>
     </div>
   );
 }

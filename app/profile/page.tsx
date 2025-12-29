@@ -6,9 +6,9 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import Navbar from "@/components/dashboard/Navbar";
 import GlowBackground from "@/components/dashboard/GlowBackground";
 import Loader from "@/components/dashboard/Loader";
-import DashboardContent from "@/components/dashboard/DashboardContent";
+import ProfilePage from "@/components/dashboard/ProfileContent";
 
-export default function DashboardPage() {
+export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -38,7 +38,7 @@ export default function DashboardPage() {
         <Navbar onMenuClick={() => setMenuOpen(true)} />
 
         {/* 👇 Moved content */}
-        <DashboardContent />
+        <ProfilePage/>
       </main>
     </div>
   );

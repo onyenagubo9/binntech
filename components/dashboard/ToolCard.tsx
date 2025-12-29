@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { ReactNode } from "react";
 
@@ -8,13 +10,26 @@ interface ToolCardProps {
   href: string;
 }
 
-export default function ToolCard({ icon, title, desc, href }: ToolCardProps) {
+export default function ToolCard({
+  icon,
+  title,
+  desc,
+  href,
+}: ToolCardProps) {
   return (
     <Link href={href}>
-      <div className="bg-white/10 border border-white/20 p-6 rounded-xl cursor-pointer hover:bg-white/20 transition shadow-md">
-        <div className="text-blue-400 text-3xl mb-3">{icon}</div>
-        <h3 className="text-lg font-semibold">{title}</h3>
-        <p className="text-gray-300 text-sm mt-2">{desc}</p>
+      <div className="bg-white/5 border border-white/10 rounded-2xl p-6 cursor-pointer hover:bg-white/10 transition group">
+        <div className="text-3xl text-blue-400 mb-4 group-hover:scale-110 transition">
+          {icon}
+        </div>
+
+        <h3 className="text-lg font-semibold mb-1">
+          {title}
+        </h3>
+
+        <p className="text-sm text-gray-400">
+          {desc}
+        </p>
       </div>
     </Link>
   );
