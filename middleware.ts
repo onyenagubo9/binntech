@@ -1,53 +1,59 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const token = request.cookies.get("binntech_token")?.value;
-  const role = request.cookies.get("binntech_role")?.value;
   const { pathname } = request.nextUrl;
 
-  /* ======================
-     PUBLIC ROUTES
-  ====================== */
-  if (
+  const token = request.cookies.get("binntech_token")?.value;
+  const role = request.cookies.get("binntech_role")?.value;
+
+  /* ==========================
+     PUBLIC ROUTES (NO AUTH)
+  ========================== */
+  const isPublicRoute =
     pathname === "/" ||
     pathname.startsWith("/api") ||
     pathname.startsWith("/auth") ||
-    pathname.startsWith("/admin/login")
-  ) {
+    pathname === "/admin/login";
+
+  if (isPublicRoute) {
     return NextResponse.next();
   }
 
-  /* ======================
-     NOT LOGGED IN
-  ====================== */
+  /* ==========================
+     NOT AUTHENTICATED
+  ========================== */
   if (!token) {
-    // trying to access admin
+    // Trying to access admin without login
     if (pathname.startsWith("/admin")) {
       return NextResponse.redirect(
         new URL("/admin/login", request.url)
       );
     }
 
-    // normal user
+    // Normal protected routes
     return NextResponse.redirect(
       new URL("/auth/login", request.url)
     );
   }
 
-  /* ======================
-     ADMIN ROUTES
-  ====================== */
+  /* ==========================
+     ADMIN-ONLY ROUTES
+  ========================== */
   if (pathname.startsWith("/admin")) {
     if (role !== "admin") {
+      // Logged in but NOT admin
       return NextResponse.redirect(
         new URL("/dashboard", request.url)
       );
     }
+
+    // ✅ Admin verified
+    return NextResponse.next();
   }
 
-  /* ======================
-     USER ROUTES
-  ====================== */
+  /* ==========================
+     USER ROUTES (LOGGED IN)
+  ========================== */
   if (
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/ai") ||
@@ -59,9 +65,9 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-/* ======================
-   MATCHER
-====================== */
+/* ==========================
+   ROUTE MATCHER
+========================== */
 export const config = {
   matcher: [
     "/dashboard/:path*",

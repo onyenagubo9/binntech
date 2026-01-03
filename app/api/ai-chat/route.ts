@@ -1,13 +1,11 @@
 import OpenAI from "openai";
-import { NextResponse } from "next/server";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!,
 });
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const messages = body.messages;
+  const { message } = await req.json();
 
   const stream = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -16,39 +14,31 @@ export async function POST(req: Request) {
       {
         role: "system",
         content:
-          "You are BinnAI, a senior software architect and full-stack engineer. " +
-          "You help users design and build applications step-by-step. " +
-          "You remember the project context and continue where you left off. " +
-          "Always respond in markdown. " +
-          "Use code blocks when writing code.",
+          "You are BinnAI, a senior software engineer. Respond clearly, step-by-step, using markdown.",
       },
-      ...messages,
+      { role: "user", content: message },
     ],
   });
 
   const encoder = new TextEncoder();
 
-  const readable = new ReadableStream({
-    async start(controller) {
-      try {
+  return new Response(
+    new ReadableStream({
+      async start(controller) {
         for await (const chunk of stream) {
           const content = chunk.choices[0]?.delta?.content;
           if (content) {
             controller.enqueue(encoder.encode(content));
           }
         }
-      } catch (error) {
-        console.error("Streaming error:", error);
-      } finally {
         controller.close();
-      }
-    },
-  });
-
-  return new NextResponse(readable, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache",
-    },
-  });
+      },
+    }),
+    {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+      },
+    }
+  );
 }
