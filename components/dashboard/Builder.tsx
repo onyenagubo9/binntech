@@ -11,12 +11,10 @@ import {
   query,
   orderBy,
   onSnapshot,
+  getDoc,
 } from "firebase/firestore";
 
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import CodeBlock from "@/components/chat/CodeBlock";
-import AITypingIndicator from "@/components/chat/AITypingIndicator";
+import ChatHeader from "@/components/dashboard/ChatHeader";
 
 interface BuilderProps {
   projectId: string;
@@ -29,13 +27,18 @@ interface ChatMessage {
   createdAt?: any;
 }
 
+interface ProjectMeta {
+  name?: string;
+  color?: string;
+  icon?: string;
+}
+
 export default function Builder({ projectId }: BuilderProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [aiTyping, setAiTyping] = useState(false);
-  const [streamingText, setStreamingText] = useState("");
+  const [project, setProject] = useState<ProjectMeta>({});
 
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
@@ -44,18 +47,26 @@ export default function Builder({ projectId }: BuilderProps) {
   ========================= */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingText, aiTyping]);
+  }, [messages]);
 
   /* =========================
-     Firestore listener (SAFE)
+     Load project + messages
   ========================= */
   useEffect(() => {
     const user = auth.currentUser;
-
     if (!user || !projectId) {
       setLoading(false);
       return;
     }
+
+    // Load project meta
+    getDoc(doc(db, "users", user.uid, "projects", projectId)).then(
+      (snap) => {
+        if (snap.exists()) {
+          setProject(snap.data() as ProjectMeta);
+        }
+      }
+    );
 
     const q = query(
       collection(
@@ -80,8 +91,8 @@ export default function Builder({ projectId }: BuilderProps) {
         );
         setLoading(false);
       },
-      (error) => {
-        console.error("Snapshot error:", error);
+      (err) => {
+        console.error(err);
         setLoading(false);
       }
     );
@@ -98,8 +109,7 @@ export default function Builder({ projectId }: BuilderProps) {
     await setDoc(
       doc(db, "users", uid, "projects", projectId),
       {
-        name: projectId.replace(/-/g, " "),
-        slug: projectId,
+        name: project.name || projectId.replace(/-/g, " "),
         createdAt: serverTimestamp(),
       },
       { merge: true }
@@ -107,10 +117,9 @@ export default function Builder({ projectId }: BuilderProps) {
   };
 
   /* =========================
-     Send message (STREAMING)
+     Send message
   ========================= */
   const handleSend = async () => {
-    if (!projectId) return;
     if (!input.trim() || sending) return;
 
     const user = auth.currentUser;
@@ -119,8 +128,6 @@ export default function Builder({ projectId }: BuilderProps) {
     const text = input.trim();
     setInput("");
     setSending(true);
-    setAiTyping(true);
-    setStreamingText("");
 
     await ensureProjectExists(user.uid);
 
@@ -140,154 +147,78 @@ export default function Builder({ projectId }: BuilderProps) {
       }
     );
 
-    try {
-      const res = await fetch("/api/ai-chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
-      });
-
-      const reader = res.body?.getReader();
-      if (!reader) return;
-
-      const decoder = new TextDecoder();
-      let fullText = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        fullText += decoder.decode(value);
-        setStreamingText(fullText);
-      }
-
-      await addDoc(
-        collection(
-          db,
-          "users",
-          user.uid,
-          "projects",
-          projectId,
-          "messages"
-        ),
-        {
-          sender: "ai",
-          message: fullText,
-          createdAt: serverTimestamp(),
-        }
-      );
-    } catch (err) {
-      console.error("AI stream failed:", err);
-    } finally {
-      setAiTyping(false);
-      setStreamingText("");
-      setSending(false);
-    }
+    setSending(false);
   };
 
-  /* =========================
-     Render
-  ========================= */
   if (loading) {
     return (
-      <div className="p-6 text-gray-400">
+      <div
+        className="ml-64 p-6 text-gray-400"
+      >
         Loading conversation…
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#0a0f1f] text-white p-4">
-      <div className="flex-1 overflow-y-auto space-y-4">
-        {messages.length === 0 && (
-          <div className="text-gray-500 italic text-sm">
-            No messages yet. Start typing below 👇
-          </div>
-        )}
+    <div className="ml-64 flex flex-col min-h-screen bg-[#0a0f1f] text-white">
+      {/* ✅ STICKY CHAT HEADER */}
+      <ChatHeader
+        name={project.name}
+        color={project.color}
+        icon={project.icon}
+      />
 
-        {messages.map((msg) => (
-          <div key={msg.id}>
-            <div
-              className={`text-xs text-gray-400 mb-1 ${
-                msg.sender === "user" ? "text-right" : ""
-              }`}
-            >
-              {msg.createdAt?.toDate?.().toLocaleTimeString()}
-            </div>
+      {/* 💬 CHAT BODY */}
+      <div className="flex-1 flex flex-col px-6 py-4">
+        <div className="flex-1 overflow-y-auto space-y-4">
+          {messages.length === 0 && (
+            <p className="text-sm text-gray-500 italic">
+              No messages yet. Start typing below 👇
+            </p>
+          )}
 
-            {msg.sender === "user" ? (
-              <div className="flex justify-end">
-                <div className="bg-blue-600 rounded-2xl px-4 py-3 max-w-[75%]">
-                  {msg.message}
-                </div>
-              </div>
-            ) : (
-              <div className="flex gap-3 max-w-[75%]">
-                <div className="h-8 w-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-semibold">
-                  AI
-                </div>
-
-                <div className="bg-[#1b2236] rounded-2xl px-4 py-3">
-                  <div className="text-xs text-gray-400 mb-1">
-                    BinnAI
-                  </div>
-
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      code({ className, children }) {
-                        const isBlock =
-                          typeof className === "string" &&
-                          className.includes("language-");
-
-                        return isBlock ? (
-                          <CodeBlock code={String(children)} />
-                        ) : (
-                          <code className="bg-black/40 px-1 rounded">
-                            {children}
-                          </code>
-                        );
-                      },
-                    }}
-                  >
+          {messages.map((msg) => (
+            <div key={msg.id}>
+              {msg.sender === "user" ? (
+                <div className="flex justify-end">
+                  <div className="bg-blue-600 px-4 py-2 rounded-xl max-w-[70%]">
                     {msg.message}
-                  </ReactMarkdown>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {streamingText && (
-          <div className="flex gap-3 max-w-[75%] opacity-80">
-            <div className="h-8 w-8 rounded-full bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xs font-semibold">
-              AI
+              ) : (
+                <div className="flex gap-3 max-w-[70%]">
+                  <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold">
+                    AI
+                  </div>
+                  <div className="bg-[#1b2236] px-4 py-2 rounded-xl">
+                    {msg.message}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="bg-[#1b2236] rounded-2xl px-4 py-3">
-              {streamingText}
-            </div>
-          </div>
-        )}
+          ))}
 
-        {aiTyping && <AITypingIndicator />}
-        <div ref={bottomRef} />
-      </div>
+          <div ref={bottomRef} />
+        </div>
 
-      <div className="mt-4 flex gap-2 bg-[#11162a] p-3 rounded-xl">
-        <input
-          className="flex-1 bg-transparent outline-none text-sm"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Write a message…"
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-        />
-        <button
-          onClick={handleSend}
-          disabled={sending}
-          className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-medium"
-        >
-          Send
-        </button>
+        {/* ✍️ INPUT */}
+        <div className="mt-4 flex gap-2 bg-[#11162a] p-3 rounded-xl">
+          <input
+            className="flex-1 bg-transparent outline-none text-sm"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Write a message…"
+            onKeyDown={(e) => e.key === "Enter" && handleSend()}
+          />
+          <button
+            onClick={handleSend}
+            disabled={sending}
+            className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-medium"
+          >
+            Send
+          </button>
+        </div>
       </div>
     </div>
   );
