@@ -201,7 +201,7 @@ export default function Builder({ projectId }: BuilderProps) {
               {copiedCode === msgId + i ? "Copied ✓" : "Copy"}
             </button>
 
-            <pre className="whitespace-pre-wrap break-words text-gray-200">
+            <pre className="whitespace-pre-wrap wrap-break-words text-gray-200">
 {cleanCode}
             </pre>
           </div>
@@ -209,7 +209,7 @@ export default function Builder({ projectId }: BuilderProps) {
       }
 
       return (
-        <p key={i} className="whitespace-pre-wrap break-words text-gray-200">
+        <p key={i} className="whitespace-pre-wrap wrap-break-words text-gray-200">
           {part}
         </p>
       );
@@ -235,7 +235,7 @@ export default function Builder({ projectId }: BuilderProps) {
           <div key={msg.id}>
             {msg.sender === "user" ? (
               <div className="flex justify-end">
-                <div className="bg-blue-600 px-3 py-2 rounded-xl max-w-[90%] md:max-w-[70%] break-words text-sm">
+                <div className="bg-blue-600 px-3 py-2 rounded-xl max-w-[90%] md:max-w-[70%] wrap-break-words text-sm">
                   {msg.message}
                 </div>
               </div>
