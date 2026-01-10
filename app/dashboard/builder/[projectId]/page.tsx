@@ -9,12 +9,16 @@ export default async function BuilderPage({ params }: PageProps) {
   const { projectId } = await params;
 
   return (
-    <div className="bg-[#0a0f1f] min-h-screen text-white">
+    <div className="min-h-screen bg-[#0a0f1f] text-white">
+
+      {/* Sidebar (fixed & responsive) */}
       <ProjectsSidebar />
 
-      <main className="ml-64 min-h-screen">
+      {/* Main content */}
+      <main className="md:ml-64 min-h-screen overflow-hidden">
         <Builder projectId={projectId} />
       </main>
+
     </div>
   );
 }

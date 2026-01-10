@@ -24,7 +24,6 @@ interface ChatMessage {
   id?: string;
   sender: "user" | "ai";
   message: string;
-  createdAt?: any;
 }
 
 interface ProjectMeta {
@@ -36,89 +35,93 @@ interface ProjectMeta {
 export default function Builder({ projectId }: BuilderProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [project, setProject] = useState<ProjectMeta>({});
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [showScrollBtn, setShowScrollBtn] = useState(false);
 
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  /* =========================
-     Auto-scroll
-  ========================= */
+  /* Auto scroll */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  /* =========================
-     Load project + messages
-  ========================= */
+  /* Scroll detection */
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user || !projectId) {
-      setLoading(false);
-      return;
-    }
+    const el = scrollRef.current;
+    if (!el) return;
 
-    // Load project meta
-    getDoc(doc(db, "users", user.uid, "projects", projectId)).then(
-      (snap) => {
-        if (snap.exists()) {
-          setProject(snap.data() as ProjectMeta);
-        }
-      }
-    );
+    const onScroll = () => {
+      const nearBottom =
+        el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+      setShowScrollBtn(!nearBottom);
+    };
 
-    const q = query(
-      collection(
-        db,
-        "users",
-        user.uid,
-        "projects",
-        projectId,
-        "messages"
-      ),
-      orderBy("createdAt", "asc")
-    );
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snap) => {
+  /* Load messages */
+  useEffect(() => {
+    const unsub = auth.onAuthStateChanged((user) => {
+      if (!user) return;
+
+      getDoc(doc(db, "users", user.uid, "projects", projectId)).then((snap) => {
+        if (snap.exists()) setProject(snap.data() as ProjectMeta);
+      });
+
+      const q = query(
+        collection(db, "users", user.uid, "projects", projectId, "messages"),
+        orderBy("createdAt", "asc")
+      );
+
+      return onSnapshot(q, (snap) => {
         setMessages(
           snap.docs.map((d) => ({
             id: d.id,
             ...(d.data() as ChatMessage),
           }))
         );
-        setLoading(false);
-      },
-      (err) => {
-        console.error(err);
-        setLoading(false);
-      }
-    );
+      });
+    });
 
-    return () => unsubscribe();
+    return () => unsub();
   }, [projectId]);
 
-  /* =========================
-     Ensure project exists
-  ========================= */
-  const ensureProjectExists = async (uid: string) => {
-    if (!uid || !projectId) return;
+  /* STREAM AI */
+  const streamAI = async (text: string, aiDocId: string) => {
+    const user = auth.currentUser;
+    if (!user) return;
 
-    await setDoc(
-      doc(db, "users", uid, "projects", projectId),
-      {
-        name: project.name || projectId.replace(/-/g, " "),
-        createdAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    const res = await fetch("/api/ai-chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+
+    const reader = res.body?.getReader();
+    const decoder = new TextDecoder();
+    let aiText = "";
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        aiText += decoder.decode(value, { stream: true });
+
+        await setDoc(
+          doc(db, "users", user.uid, "projects", projectId, "messages", aiDocId),
+          { message: aiText },
+          { merge: true }
+        );
+      }
+    }
   };
 
-  /* =========================
-     Send message
-  ========================= */
+  /* SEND */
   const handleSend = async () => {
     if (!input.trim() || sending) return;
 
@@ -129,83 +132,144 @@ export default function Builder({ projectId }: BuilderProps) {
     setInput("");
     setSending(true);
 
-    await ensureProjectExists(user.uid);
-
-    await addDoc(
-      collection(
-        db,
-        "users",
-        user.uid,
-        "projects",
-        projectId,
-        "messages"
-      ),
-      {
-        sender: "user",
-        message: text,
-        createdAt: serverTimestamp(),
-      }
+    const msgRef = collection(
+      db,
+      "users",
+      user.uid,
+      "projects",
+      projectId,
+      "messages"
     );
 
+    await addDoc(msgRef, {
+      sender: "user",
+      message: text,
+      createdAt: serverTimestamp(),
+    });
+
+    const aiDoc = await addDoc(msgRef, {
+      sender: "ai",
+      message: "Thinking...",
+      createdAt: serverTimestamp(),
+    });
+
+    await streamAI(text, aiDoc.id!);
     setSending(false);
   };
 
-  if (loading) {
-    return (
-      <div
-        className="ml-64 p-6 text-gray-400"
-      >
-        Loading conversation…
-      </div>
-    );
-  }
+  /* COPY CODE */
+  const copyCode = async (code: string, key: string) => {
+    await navigator.clipboard.writeText(code);
+    setCopiedCode(key);
+    setTimeout(() => setCopiedCode(null), 1500);
+  };
+
+  /* COPY SELECTED TEXT */
+  const copySelection = async () => {
+    const selected = window.getSelection()?.toString();
+    if (!selected) return;
+    await navigator.clipboard.writeText(selected);
+  };
+
+  /* RENDER MESSAGE */
+  const renderMessage = (text: string, msgId: string) => {
+    const parts = text.split(/```/g);
+
+    return parts.map((part, i) => {
+      if (i % 2 === 1) {
+        const lines = part.trim().split("\n");
+        const firstLine = lines[0].toLowerCase();
+
+        const knownLangs = [
+          "bash","python","js","javascript","ts","typescript","html","css",
+          "json","java","c","cpp","c++","php","go","rust","sql","yaml","yml"
+        ];
+
+        const cleanCode = knownLangs.includes(firstLine)
+          ? lines.slice(1).join("\n")
+          : part.trim();
+
+        return (
+          <div
+            key={i}
+            className="relative bg-black rounded-xl p-4 mt-3 text-sm font-mono overflow-x-auto border border-white/10"
+          >
+            <button
+              onClick={() => copyCode(cleanCode, msgId + i)}
+              className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded-md text-xs hover:bg-blue-700"
+            >
+              {copiedCode === msgId + i ? "Copied ✓" : "Copy"}
+            </button>
+
+            <pre className="whitespace-pre-wrap wrap-break-words text-gray-200">
+{cleanCode}
+            </pre>
+          </div>
+        );
+      }
+
+      return (
+        <p key={i} className="whitespace-pre-wrap wrap-break-words text-gray-200">
+          {part}
+        </p>
+      );
+    });
+  };
 
   return (
-    <div className="ml-64 flex flex-col min-h-screen bg-[#0a0f1f] text-white">
-      {/* ✅ STICKY CHAT HEADER */}
+    <div className="h-screen w-full bg-[#0a0f1f] text-white grid grid-rows-[auto_1fr_auto]">
+
       <ChatHeader
         name={project.name}
         color={project.color}
         icon={project.icon}
       />
 
-      {/* 💬 CHAT BODY */}
-      <div className="flex-1 flex flex-col px-6 py-4">
-        <div className="flex-1 overflow-y-auto space-y-4">
-          {messages.length === 0 && (
-            <p className="text-sm text-gray-500 italic">
-              No messages yet. Start typing below 👇
-            </p>
-          )}
-
-          {messages.map((msg) => (
-            <div key={msg.id}>
-              {msg.sender === "user" ? (
-                <div className="flex justify-end">
-                  <div className="bg-blue-600 px-4 py-2 rounded-xl max-w-[70%]">
-                    {msg.message}
-                  </div>
+      {/* MESSAGES */}
+      <div
+        ref={scrollRef}
+        className="relative overflow-y-auto px-6 py-4 space-y-4"
+        onMouseUp={copySelection}
+      >
+        {messages.map((msg) => (
+          <div key={msg.id}>
+            {msg.sender === "user" ? (
+              <div className="flex justify-end">
+                <div className="bg-blue-600 px-4 py-2 rounded-xl max-w-[70%] wrap-break-words">
+                  {msg.message}
                 </div>
-              ) : (
-                <div className="flex gap-3 max-w-[70%]">
-                  <div className="h-8 w-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold">
-                    AI
-                  </div>
-                  <div className="bg-[#1b2236] px-4 py-2 rounded-xl">
-                    {msg.message}
-                  </div>
+              </div>
+            ) : (
+              <div className="flex gap-3 max-w-full">
+                <div className="h-8 w-8 shrink-0 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold">
+                  AI
                 </div>
-              )}
-            </div>
-          ))}
+                <div className="bg-[#1b2236] px-4 py-2 rounded-xl max-w-full text-gray-200">
+                  {renderMessage(msg.message, msg.id!)}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+        <div ref={bottomRef} />
 
-          <div ref={bottomRef} />
-        </div>
+        {showScrollBtn && (
+          <button
+            onClick={() =>
+              bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+            }
+            className="fixed bottom-24 right-6 bg-[#1b2236] text-gray-200 px-3 py-2 rounded-full shadow hover:bg-[#222a40]"
+          >
+            ↓ New messages
+          </button>
+        )}
+      </div>
 
-        {/* ✍️ INPUT */}
-        <div className="mt-4 flex gap-2 bg-[#11162a] p-3 rounded-xl">
+      {/* INPUT */}
+      <div className="border-t border-white/10 bg-[#0a0f1f] px-6 py-4">
+        <div className="flex gap-2 bg-[#11162a] p-3 rounded-xl">
           <input
-            className="flex-1 bg-transparent outline-none text-sm"
+            className="flex-1 bg-transparent outline-none text-sm text-gray-200"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Write a message…"
@@ -214,9 +278,9 @@ export default function Builder({ projectId }: BuilderProps) {
           <button
             onClick={handleSend}
             disabled={sending}
-            className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-medium"
+            className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
           >
-            Send
+            {sending ? "Thinking…" : "Send"}
           </button>
         </div>
       </div>
