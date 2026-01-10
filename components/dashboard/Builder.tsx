@@ -55,7 +55,7 @@ export default function Builder({ projectId }: BuilderProps) {
 
     const onScroll = () => {
       const nearBottom =
-        el.scrollHeight - el.scrollTop - el.clientHeight < 150;
+        el.scrollHeight - el.scrollTop - el.clientHeight < 120;
       setShowScrollBtn(!nearBottom);
     };
 
@@ -192,7 +192,7 @@ export default function Builder({ projectId }: BuilderProps) {
         return (
           <div
             key={i}
-            className="relative bg-black rounded-xl p-4 mt-3 text-sm font-mono overflow-x-auto border border-white/10"
+            className="relative bg-black rounded-xl p-3 md:p-4 mt-3 text-sm font-mono overflow-x-auto border border-white/10"
           >
             <button
               onClick={() => copyCode(cleanCode, msgId + i)}
@@ -201,7 +201,7 @@ export default function Builder({ projectId }: BuilderProps) {
               {copiedCode === msgId + i ? "Copied ✓" : "Copy"}
             </button>
 
-            <pre className="whitespace-pre-wrap wrap-break-words text-gray-200">
+            <pre className="whitespace-pre-wrap break-words text-gray-200">
 {cleanCode}
             </pre>
           </div>
@@ -209,7 +209,7 @@ export default function Builder({ projectId }: BuilderProps) {
       }
 
       return (
-        <p key={i} className="whitespace-pre-wrap wrap-break-words text-gray-200">
+        <p key={i} className="whitespace-pre-wrap break-words text-gray-200">
           {part}
         </p>
       );
@@ -228,23 +228,23 @@ export default function Builder({ projectId }: BuilderProps) {
       {/* MESSAGES */}
       <div
         ref={scrollRef}
-        className="relative overflow-y-auto px-6 py-4 space-y-4"
+        className="relative overflow-y-auto px-3 md:px-6 py-3 md:py-4 space-y-4"
         onMouseUp={copySelection}
       >
         {messages.map((msg) => (
           <div key={msg.id}>
             {msg.sender === "user" ? (
               <div className="flex justify-end">
-                <div className="bg-blue-600 px-4 py-2 rounded-xl max-w-[70%] wrap-break-words">
+                <div className="bg-blue-600 px-3 py-2 rounded-xl max-w-[90%] md:max-w-[70%] break-words text-sm">
                   {msg.message}
                 </div>
               </div>
             ) : (
               <div className="flex gap-3 max-w-full">
-                <div className="h-8 w-8 shrink-0 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold">
+                <div className="h-7 w-7 md:h-8 md:w-8 shrink-0 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold">
                   AI
                 </div>
-                <div className="bg-[#1b2236] px-4 py-2 rounded-xl max-w-full text-gray-200">
+                <div className="bg-[#1b2236] px-3 py-2 rounded-xl max-w-[90%] md:max-w-full text-gray-200 text-sm">
                   {renderMessage(msg.message, msg.id!)}
                 </div>
               </div>
@@ -258,15 +258,15 @@ export default function Builder({ projectId }: BuilderProps) {
             onClick={() =>
               bottomRef.current?.scrollIntoView({ behavior: "smooth" })
             }
-            className="fixed bottom-24 right-6 bg-[#1b2236] text-gray-200 px-3 py-2 rounded-full shadow hover:bg-[#222a40]"
+            className="fixed bottom-24 right-4 md:right-6 bg-[#1b2236] text-gray-200 px-3 py-2 rounded-full shadow hover:bg-[#222a40] text-sm"
           >
-            ↓ New messages
+            ↓ New
           </button>
         )}
       </div>
 
       {/* INPUT */}
-      <div className="border-t border-white/10 bg-[#0a0f1f] px-6 py-4">
+      <div className="border-t border-white/10 bg-[#0a0f1f] px-3 md:px-6 py-3 md:py-4">
         <div className="flex gap-2 bg-[#11162a] p-3 rounded-xl">
           <input
             className="flex-1 bg-transparent outline-none text-sm text-gray-200"
@@ -278,7 +278,7 @@ export default function Builder({ projectId }: BuilderProps) {
           <button
             onClick={handleSend}
             disabled={sending}
-            className="bg-blue-600 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+            className="bg-blue-600 px-3 md:px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
           >
             {sending ? "Thinking…" : "Send"}
           </button>
